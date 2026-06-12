@@ -2,10 +2,23 @@
 
 Классический «Сапёр» — консольная игра на Python (без зависимостей, нужен только Python 3).
 
+## Требования
+
+- Python 3.8+ (стандартная библиотека, ничего ставить не нужно)
+- Терминал с поддержкой ANSI (macOS/Linux — любой; Windows — Windows Terminal или PowerShell)
+
 ## Запуск
 
 ```bash
+git clone https://github.com/Alikyshkin/sapper.git
+cd sapper
 python3 main.py
+```
+
+На Windows:
+
+```powershell
+py main.py
 ```
 
 ## Правила
