@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Сапёр в браузере. Три уровня сложности, безопасный первый ход и управление мышью, клавиатурой или касанием.">
+  <meta name="theme-color" content="#e8ede5">
+  <title>Сапёр</title>
+  <link rel="stylesheet" href="style.css">
+  <script type="module" src="app.mjs"></script>
+</head>
+<body>
+  <main class="table">
+    <aside class="controls">
+      <header>
+        <h1>Сапёр</h1>
+        <p class="intro">Откройте все клетки без мин. Число показывает, сколько мин в соседних клетках.</p>
+      </header>
+
+      <fieldset class="levels">
+        <legend>Сложность</legend>
+        <label><input type="radio" name="level" value="easy" checked><span>Лёгкая <small>8 × 8</small></span></label>
+        <label><input type="radio" name="level" value="medium"><span>Средняя <small>12 × 12</small></span></label>
+        <label><input type="radio" name="level" value="hard"><span>Сложная <small>16 × 16</small></span></label>
+      </fieldset>
+      <details class="help">
+        <summary>Как играть</summary>
+        <ul>
+          <li>Первый ход безопасен. Пустые клетки открываются вместе с соседними.</li>
+          <li>Щёлкните правой кнопкой, нажмите <kbd>F</kbd> или включите режим «Флаг», чтобы отметить мину.</li>
+          <li>Стрелки выбирают клетку. <kbd>Enter</kbd> или пробел применяет выбранное действие.</li>
+          <li>Нажмите на открытую цифру, чтобы открыть соседей, когда рядом поставлено столько же флагов.</li>
+        </ul>
+      </details>
+    </aside>
+
+    <section class="game" aria-label="Партия">
+      <div class="scoreboard">
+        <dl class="counters">
+          <div><dt>Мины − флаги</dt><dd id="mines">09</dd></div>
+          <div><dt>Время</dt><dd id="time">00:00</dd></div>
+        </dl>
+        <button class="restart" id="restart" type="button">Заново</button>
+      </div>
+
+      <fieldset class="modes">
+        <legend>Действие на поле</legend>
+        <label><input type="radio" name="mode" value="open" checked><span>Открыть</span></label>
+        <label><input type="radio" name="mode" value="flag"><span><b aria-hidden="true">⚑</b> Флаг</span></label>
+      </fieldset>
+
+      <p id="status" class="status" role="status">Выберите любую клетку</p>
+      <div class="board-scroll">
+        <div id="board" class="board" role="group" aria-label="Игровое поле" aria-describedby="board-tip"></div>
+      </div>
+      <p class="board-tip" id="board-tip" hidden>На узком экране поле можно прокрутить вбок.</p>
+    </section>
+  </main>
+  <noscript><p>Включите JavaScript, чтобы играть.</p></noscript>
+</body>
+</html>
