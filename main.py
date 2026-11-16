@@ -6,10 +6,27 @@
     q        — выйти из игры
 """
 
+import os
 import random
 import sys
 
 BOMB = -1
+CELL_COLORS = {
+    "#": 90,
+    ".": 90,
+    "F": 93,
+    "!": 91,
+    "*": 91,
+    "X": 91,
+    "1": 96,
+    "2": 92,
+    "3": 93,
+    "4": 95,
+    "5": 91,
+    "6": 96,
+    "7": 97,
+    "8": 97,
+}
 
 DIFFICULTIES = {
     "1": ("Лёгкий", 8, 8, 9),
@@ -18,9 +35,15 @@ DIFFICULTIES = {
 }
 
 
+def terminal_supports_ansi():
+    return sys.stdout.isatty() and os.environ.get("TERM") not in (None, "", "dumb")
+
+
 def cls():
-    # ANSI: очистить экран и поставить курсор в начало
-    print("\033[2J\033[H", end="")
+    if terminal_supports_ansi():
+        print("\033[2J\033[H", end="")
+    else:
+        print()
 
 
 def neighbors(x, y, width, height):
@@ -73,30 +96,40 @@ def open_cell(field, opened, flags, x, y):
             )
 
 
-def render(field, opened, flags, bombs, reveal=False):
+def cell_symbol(value, opened, flagged, reveal, exploded):
+    if exploded:
+        return "X"
+    if flagged:
+        if reveal and value != BOMB:
+            return "!"
+        return "F"
+    if not opened and not reveal:
+        return "#"
+    if value == BOMB:
+        return "*"
+    return str(value) if value else "."
+
+
+def render(field, opened, flags, bombs, reveal=False, exploded=None):
     width, height = len(field[0]), len(field)
-    lines = []
-    header = "    " + " ".join(f"{x:>2}" for x in range(width))
-    lines.append(header)
-    lines.append("    " + "---" * width)
-    for y in range(height):
+    cell_width = max(2, len(str(width - 1)))
+    row_width = max(2, len(str(height - 1)))
+    color = terminal_supports_ansi() and "NO_COLOR" not in os.environ
+    divider = " " * (row_width + 1) + "+-" + "-" * ((cell_width + 1) * width - 1) + "-+"
+    header = " " * (row_width + 3) + " ".join(f"{x:>{cell_width}}" for x in range(width))
+    lines = [header, divider]
+    for y, values in enumerate(field):
         row = []
-        for x in range(width):
-            if (x, y) in flags and not reveal:
-                cell = "F"
-            elif (x, y) in opened or reveal:
-                value = field[y][x]
-                if value == BOMB:
-                    cell = "*"
-                elif value == 0:
-                    cell = "."
-                else:
-                    cell = str(value)
-            else:
-                cell = "#"
-            row.append(f"{cell:>2}")
-        lines.append(f"{y:>2} | " + " ".join(row))
-    lines.append(f"\nБомб: {bombs}   Флагов: {len(flags)}")
+        for x, value in enumerate(values):
+            coordinate = (x, y)
+            symbol = cell_symbol(
+                value, coordinate in opened, coordinate in flags, reveal, coordinate == exploded
+            )
+            padded = f"{symbol:>{cell_width}}"
+            row.append(f"\033[{CELL_COLORS[symbol]}m{padded}\033[0m" if color else padded)
+        lines.append(f"{y:>{row_width}} | " + " ".join(row) + " |")
+    lines.append(divider)
+    lines.append(f"Мины: {bombs}   Флаги: {len(flags)}   Открыто: {len(opened)} из {width * height - bombs}")
     return "\n".join(lines)
 
 
@@ -112,9 +145,14 @@ def parse_move(raw, width, height):
     if parts[0] in ("f", "flag", "ф"):
         action = "flag"
         parts = parts[1:]
-    if len(parts) != 2 or not all(p.lstrip("-").isdigit() for p in parts):
+    if len(parts) != 2:
         return None
-    x, y = int(parts[0]), int(parts[1])
+    if not all((part[1:] if part.startswith("-") else part).isdecimal() for part in parts):
+        return None
+    try:
+        x, y = map(int, parts)
+    except ValueError:
+        return None
     if not (0 <= x < width and 0 <= y < height):
         return None
     return (action, x, y)
@@ -137,17 +175,16 @@ def play(width, height, bombs):
     opened = set()
     flags = set()
     total_safe = width * height - bombs
-    message = "Ход: 'x y' — открыть, 'f x y' — флаг, 'q' — выход."
+    empty_field = [[0] * width for _ in range(height)]
+    message = ""
 
     while True:
         cls()
-        if field is None:
-            # До первого хода показываем пустое поле
-            empty = [[0] * width for _ in range(height)]
-            print(render(empty, set(), flags, bombs))
-        else:
-            print(render(field, opened, flags, bombs))
-        print("\n" + message)
+        print(f"САПЁР  ·  {width} × {height}\n")
+        print(render(field if field is not None else empty_field, opened, flags, bombs))
+        print("\nОткрыть: x y   Флаг: f x y   Выход: q")
+        if message:
+            print(message)
 
         try:
             raw = input("> ")
@@ -189,17 +226,19 @@ def play(width, height, bombs):
 
         if field[y][x] == BOMB:
             cls()
-            print(render(field, opened, flags, bombs, reveal=True))
-            print(f"\n💥 БУМ! Бомба на ({x}, {y}). Игра окончена.")
+            print(render(field, opened, flags, bombs, reveal=True, exploded=(x, y)))
+            print(f"\nНа клетке ({x}, {y}) была мина. Игра окончена.")
+            if flags:
+                print("F — верный флаг, ! — ошибочный.")
             return True
 
         open_cell(field, opened, flags, x, y)
-        message = f"Открыто клеток: {len(opened)} из {total_safe}."
+        message = ""
 
         if len(opened) >= total_safe:
             cls()
             print(render(field, opened, flags, bombs, reveal=True))
-            print("\n🎉 Победа! Все безопасные клетки открыты.")
+            print("\nПобеда! Все безопасные клетки открыты.")
             return True
 
 
@@ -211,10 +250,15 @@ def main():
         finished = play(width, height, bombs)
         if not finished:
             break
-        again = input("\nСыграть ещё раз? [y/n]: ").strip().lower()
-        if again not in ("y", "yes", "д", "да", ""):
-            print("Пока!")
-            break
+        while True:
+            again = input("\nСыграть ещё раз? [д/н]: ").strip().lower()
+            if again in ("y", "yes", "д", "да", ""):
+                break
+            if again in ("n", "no", "н", "нет", "q", "quit", "exit", "выход"):
+                print("Пока!")
+                return
+            print("Введите «д» или «н».")
+
 
 
 if __name__ == "__main__":

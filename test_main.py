@@ -1,8 +1,9 @@
 """Тесты логики сапёра: python3 -m unittest"""
 
 import unittest
+from unittest.mock import patch
 
-from main import BOMB, create_field, neighbors, open_cell, parse_move
+from main import BOMB, create_field, neighbors, open_cell, parse_move, render
 
 
 class TestNeighbors(unittest.TestCase):
@@ -90,6 +91,21 @@ class TestParseMove(unittest.TestCase):
         self.assertIsNone(parse_move("hello", 8, 8))
         self.assertIsNone(parse_move("", 8, 8))
         self.assertIsNone(parse_move("1 2 3", 8, 8))
+
+    def test_invalid_digit_forms_do_not_crash(self):
+        for raw in ("² 0", "--1 0", "f 0 ①", "9" * 5100 + " 0"):
+            with self.subTest(raw=raw[:10]):
+                self.assertIsNone(parse_move(raw, 8, 8))
+
+
+class TestRender(unittest.TestCase):
+    def test_loss_marks_explosion_and_distinguishes_flags(self):
+        field = [[BOMB, BOMB, 1], [2, 2, 1]]
+        flags = {(1, 0), (2, 0)}
+        with patch("main.terminal_supports_ansi", return_value=False):
+            output = render(field, {(0, 1)}, flags, 2, reveal=True, exploded=(0, 0))
+        self.assertRegex(output, r"0 \|\s+X\s+F\s+!")
+        self.assertIn("Открыто: 1 из 4", output)
 
 
 if __name__ == "__main__":
