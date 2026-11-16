@@ -1,4 +1,4 @@
-import { LEVELS, SapperGame } from './game.mjs';
+import { SapperGame } from './game.mjs';
 
 const board = document.querySelector('#board');
 const restart = document.querySelector('#restart');
@@ -8,11 +8,18 @@ const time = document.querySelector('#time');
 const boardTip = document.querySelector('#board-tip');
 const levels = document.querySelector('.levels');
 const modes = document.querySelector('.modes');
+const result = document.querySelector('#result');
+const resultTitle = document.querySelector('#result-title');
+const resultDetail = document.querySelector('#result-detail');
+const resultMark = document.querySelector('#result-mark');
+const replay = document.querySelector('#result-replay');
 const stateMessage = {
   ready: 'Выберите любую клетку',
   playing: 'Откройте все клетки без мин',
-  won: 'Победа! Все безопасные клетки открыты',
-  lost: 'Мина! Попробуйте ещё раз',
+};
+const outcomes = {
+  won: { title: 'Вы выиграли!', detail: 'Все безопасные клетки открыты.', mark: '✓' },
+  lost: { title: 'Вы проиграли', detail: 'Клетка, в которой была мина, выделена на поле.', mark: '!' },
 };
 
 let game;
@@ -46,7 +53,9 @@ function render() {
     button.setAttribute('aria-label', `Ряд ${row}, столбец ${col}, ${view.label}`);
   }
   board.dataset.state = game.state;
-  if (status.textContent !== stateMessage[game.state]) status.textContent = stateMessage[game.state];
+  status.hidden = game.finished;
+  const message = stateMessage[game.state];
+  if (message && status.textContent !== message) status.textContent = message;
   const remaining = game.mines - game.marked;
   mines.textContent = remaining < 0 ? String(remaining) : String(remaining).padStart(2, '0');
 }
@@ -59,6 +68,7 @@ function updateBoardTip() {
 function newGame() {
   clearInterval(ticker);
   started = undefined;
+  result.hidden = true;
   game = new SapperGame(levels.querySelector(':checked').value);
   modes.querySelector('[value="open"]').checked = true;
   focused = 0;
@@ -78,6 +88,16 @@ function newGame() {
   updateBoardTip();
 }
 
+function showResult() {
+  const { title, detail, mark } = outcomes[game.state];
+  result.dataset.outcome = game.state;
+  resultTitle.textContent = title;
+  resultDetail.textContent = detail;
+  resultMark.textContent = mark;
+  result.hidden = false;
+  resultTitle.focus();
+}
+
 function play(index, mark) {
   if (game.finished) return;
   const before = game.state;
@@ -92,6 +112,7 @@ function play(index, mark) {
     updateClock();
   }
   render();
+  if (game.finished) showResult();
 }
 
 board.addEventListener('click', event => {
@@ -134,6 +155,10 @@ board.addEventListener('keydown', event => {
 });
 
 restart.addEventListener('click', newGame);
+replay.addEventListener('click', () => {
+  newGame();
+  selectCell(0, true);
+});
 levels.addEventListener('change', newGame);
 window.addEventListener('resize', updateBoardTip);
 newGame();

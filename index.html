@@ -50,6 +50,14 @@
       </fieldset>
 
       <p id="status" class="status" role="status">Выберите любую клетку</p>
+      <section class="result" id="result" aria-labelledby="result-title" hidden>
+        <span class="result-mark" id="result-mark" aria-hidden="true"></span>
+        <div class="result-copy">
+          <h2 id="result-title" tabindex="-1" aria-describedby="result-detail"></h2>
+          <p id="result-detail"></p>
+        </div>
+        <button class="result-replay" id="result-replay" type="button">Сыграть ещё</button>
+      </section>
       <div class="board-scroll">
         <div id="board" class="board" role="group" aria-label="Игровое поле" aria-describedby="board-tip"></div>
       </div>
